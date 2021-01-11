@@ -9,23 +9,23 @@ fast, efficient, battle-tested, highly available load balancer with many advance
  * **Stateless design**: no direct dependency on any third-party state store like ZooKeeper or etcd (_except through Marathon_)
  * **Idempotent and deterministic**: scales horizontally
  * **Highly scalable**: [can achieve line-rate](http://www.haproxy.org/10g.html) per instance, with multiple instances providing fault-tolerance and greater throughput
- * **Real-time LB updates**, via [Marathon's event bus](https://mesosphere.github.io/marathon/docs/event-bus.html)
+ * **Real-time LB updates**, via [Marathon's event bus](https://aventer-ug.github.io/marathon/docs/event-bus.html)
  * Support for Marathon's **health checks**
  * **Multi-cert TLS/SSL** support
  * [Zero-downtime deployments](#zero-downtime-deployments)
  * Per-service **HAProxy templates**
- * DC/OS integration
- * Automated Docker image builds ([mesosphere/marathon-lb](https://hub.docker.com/r/mesosphere/marathon-lb))
+ * Apache Mesos integration
+ * Automated Docker image builds ([avhost/marathon-lb](https://hub.docker.com/r/avhost/marathon-lb))
  * Global HAProxy templates which can be supplied at launch
  * Supports IP-per-task integration, such as [Project Calico](https://github.com/projectcalico/calico-containers)
  * Includes [tini](https://github.com/krallin/tini) zombies reaper
 
 ### Getting Started
 
- * [Using marathon-lb](https://github.com/mesosphere/marathon-lb/wiki/Using-Marathon-LB)
+ * [Using marathon-lb](https://github.com/AVENTER-UG/marathon-lb/wiki/Using-Marathon-LB)
  * [Securing your service with TLS/SSL (blog post)](https://mesosphere.com/blog/2016/04/06/lets-encrypt-dcos/)
 
-Take a look at [the marathon-lb wiki](https://github.com/mesosphere/marathon-lb/wiki) for example usage, templates, and more.
+Take a look at [the marathon-lb wiki](https://github.com/AVENTER-UG/marathon-lb/wiki) for example usage, templates, and more.
 
 ## Architecture
 The marathon-lb script `marathon_lb.py` connects to the marathon API
@@ -34,7 +34,7 @@ By default, marathon-lb binds to the service port of every application and
 sends incoming requests to the application instances.
 
 Services are exposed on their service port (see
-[Service Discovery & Load Balancing](https://mesosphere.github.io/marathon/docs/service-discovery-load-balancing)
+[Service Discovery & Load Balancing](https://aventer-ug.github.io/marathon/docs/service-discovery-load-balancing)
 for reference) as defined in their Marathon definition. Furthermore, apps are
 only exposed on LBs which have the same LB tag (or group) as defined in the Marathon
 app's labels (using `HAPROXY_GROUP`). HAProxy parameters can be tuned by specify labels in your app.
@@ -50,23 +50,6 @@ the [templates section](Longhelp.md#templates)
 
 You can access the HAProxy statistics via `:9090/haproxy?stats`, and you can
 retrieve the current HAProxy config from the `:9090/_haproxy_getconfig` endpoint.
-
-## Deployment
-The package is currently available [from the universe](https://github.com/mesosphere/universe).
-To deploy marathon-lb on the public slaves in your DC/OS cluster,
-simply run:
-
-```
-dcos package install marathon-lb
-```
-
-To configure a custom ssl-certificate, set the dcos cli option `ssl-cert`
-to your concatenated cert and private key in .pem format. For more details
-see the [HAProxy documentation](https://cbonte.github.io/haproxy-dconv/configuration-1.7.html#crt (Bind options)).
-
-For further customization, templates can be added by pointing the dcos cli
-option `template-url` to a tarball containing a directory `templates/`.
-See [comments in script](marathon_lb.py) on how to name those.
 
 ### Docker
 Synopsis: `docker run -e PORTS=$portnumber --net=host mesosphere/marathon-lb sse|poll ...`
@@ -261,7 +244,7 @@ The default value when not specified is `redispatch,http-server-close,dontlognul
  * Avoid using the `HAPROXY_{n}_PORT` label; prefer defining service ports.
  * Consider running multiple marathon-lb instances. In practice, 3 or more should be used to provide high availability for production workloads. Running 1 instance is never recommended, and unless you have significant load running more than 5 instances may not add value. The number of MLB instances you run will vary depending on workload and the amount of failure tolerance required. Note: **do not** run marathon-lb on every node in your cluster. This is considered an anti-pattern due to the implications of hammering the Marathon API and excess health checking.
  * Consider using a dedicated load balancer in front of marathon-lb to permit upgrades/changes. Common choices include an ELB (on AWS) or a hardware load balancer for on-premise installations.
- * Use separate marathon-lb groups (specified with `--group`) for internal and external load balancing. On DC/OS, the default group is `external`. A simple `options.json` for an internal load balancer would be:
+ * Use separate marathon-lb groups (specified with `--group`) for internal and external load balancing. On Marathon, the default group is `external`. A simple `options.json` for an internal load balancer would be:
 
  ```json
    {
@@ -305,7 +288,7 @@ The default value when not specified is `redispatch,http-server-close,dontlognul
 
 Marathon-lb is able to perform canary style blue/green deployment with zero downtime. To execute such deployments, you must follow certain patterns when using Marathon.
 
-The deployment method is described [in this Marathon document](https://mesosphere.github.io/marathon/docs/blue-green-deploy.html). Marathon-lb provides an implementation of the aforementioned deployment method with the script [`zdd.py`](zdd.py). To perform a zero downtime deploy using `zdd.py`, you must:
+The deployment method is described [in this Marathon document](https://aventer-ug.github.io/marathon/docs/blue-green-deploy.html). Marathon-lb provides an implementation of the aforementioned deployment method with the script [`zdd.py`](zdd.py). To perform a zero downtime deploy using `zdd.py`, you must:
 
 
 - Specify the `HAPROXY_DEPLOYMENT_GROUP` and `HAPROXY_DEPLOYMENT_ALT_PORT` labels in your app template
