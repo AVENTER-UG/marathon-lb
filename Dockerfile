@@ -1,6 +1,9 @@
 FROM debian:buster
 
-LABEL LAST_MODIFIED=20191004
+LABEL LAST_MODIFIED=20210702
+LABEL version="1.16.0"
+LABEL org.opencontainers.image.authors="support@aventer.biz"
+LABEL biz.aventer.marathon-lb="AVENTER UG (haftungsbeschraenkt)"
 
 # runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,8 +34,7 @@ RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 595E85A6B1
     && gpg --batch --verify /tini.asc /tini
 
 RUN set -x \
-    && apt-get update && apt-get install -y --no-install-recommends gpg \
-        && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* \
     && export GNUPGHOME="$(mktemp -d)" \    
     && rm -rf "$GNUPGHOME" tini.asc \
     && mv /tini /usr/bin/tini \
@@ -95,9 +97,10 @@ RUN set -x \
 # will probably be uninstalled with the build dependencies.
     && pip3 install --no-cache --upgrade --force-reinstall -r /marathon-lb/requirements.txt \
     \
-    && apt-get purge -y --auto-remove $buildDeps \
+    && apt-get purge -y --auto-remove $buildDeps cargo make \
+    && rm -rf /root/.cargo \
 # Purge of python3-dev will delete python3 also
-    && apt-get update && apt-get install -y --no-install-recommends python3 cargo
+    && apt-get update && apt-get install -y --no-install-recommends python3
 
 COPY  . /marathon-lb
 
