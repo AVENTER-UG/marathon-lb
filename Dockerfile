@@ -14,29 +14,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         runit \
         gnupg-agent \
+        gpg  \
+        dirmngr \
         socat \
+        cargo \
         make \
     && rm -rf /var/lib/apt/lists/*
 
-ENV TINI_VERSION=v0.18.0 \
+ENV TINI_VERSION=v0.19.0 \
     TINI_GPG_KEY=595E85A6B1B4779EA4DAAEC70B588DFF0527A9B7
 
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini.asc /tini.asc    
+
+RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 595E85A6B1B4779EA4DAAEC70B588DFF0527A9B7 \
+    && gpg --batch --verify /tini.asc /tini
+
 RUN set -x \
-    && apt-get update && apt-get install -y --no-install-recommends dirmngr gpg wget \
+    && apt-get update && apt-get install -y --no-install-recommends gpg \
         && rm -rf /var/lib/apt/lists/* \
-    && wget -O tini "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64" \
-    && wget -O tini.asc "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64.asc" \
-    && export GNUPGHOME="$(mktemp -d)" \
-    && gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$TINI_GPG_KEY" \
-    || gpg --keyserver pool.sks-keyservers.net --recv-keys "$TINI_GPG_KEY" \
-    || gpg --keyserver keyserver.pgp.com --recv-keys "$TINI_GPG_KEY" \
-    || gpg --keyserver pgp.mit.edu --recv-keys "$TINI_GPG_KEY" \
-    && gpg --batch --verify tini.asc tini \
+    && export GNUPGHOME="$(mktemp -d)" \    
     && rm -rf "$GNUPGHOME" tini.asc \
-    && mv tini /usr/bin/tini \
+    && mv /tini /usr/bin/tini \
     && chmod +x /usr/bin/tini \
     && tini -- true \
-    && apt-get purge -y --auto-remove dirmngr gpg wget
+    && apt-get purge -y --auto-remove gpg dirmngr 
 
 
 ENV HAPROXY_MAJOR=2.0 \
@@ -95,7 +97,7 @@ RUN set -x \
     \
     && apt-get purge -y --auto-remove $buildDeps \
 # Purge of python3-dev will delete python3 also
-    && apt-get update && apt-get install -y --no-install-recommends python3
+    && apt-get update && apt-get install -y --no-install-recommends python3 cargo
 
 COPY  . /marathon-lb
 

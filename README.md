@@ -1,7 +1,7 @@
-# marathon-lb [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=marathon-lb/public-marathon-lb-master)](https://jenkins.mesosphere.com/service/jenkins/job/marathon-lb/job/public-marathon-lb-master/)
+# marathon-lb 
 
 Marathon-lb is a tool for managing HAProxy, by consuming
-[Marathon's](https://github.com/mesosphere/marathon) app state. HAProxy is a
+[Marathon's](https://github.com/AVENTER-UG/marathon) app state. HAProxy is a
 fast, efficient, battle-tested, highly available load balancer with many advanced features which power a number of high-profile websites.
 
 ### Features

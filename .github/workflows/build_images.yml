@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+    branch:
+      - 'dev'
 
 jobs:
   docker:
