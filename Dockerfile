@@ -1,6 +1,9 @@
 FROM debian:buster
 
-LABEL LAST_MODIFIED=20191004
+LABEL LAST_MODIFIED=20210702
+LABEL version="1.16.0"
+LABEL org.opencontainers.image.authors="support@aventer.biz"
+LABEL biz.aventer.marathon-lb="AVENTER UG (haftungsbeschraenkt)"
 
 # runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,8 +34,7 @@ RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 595E85A6B1
     && gpg --batch --verify /tini.asc /tini
 
 RUN set -x \
-    && apt-get update && apt-get install -y --no-install-recommends gpg \
-        && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* \
     && export GNUPGHOME="$(mktemp -d)" \    
     && rm -rf "$GNUPGHOME" tini.asc \
     && mv /tini /usr/bin/tini \
@@ -41,9 +43,9 @@ RUN set -x \
     && apt-get purge -y --auto-remove gpg dirmngr 
 
 
-ENV HAPROXY_MAJOR=2.0 \
-    HAPROXY_VERSION=2.0.17 \
-    HAPROXY_MD5=786a967c73cc1455c938d42fbe333bfe
+ENV HAPROXY_MAJOR=2.4 \
+    HAPROXY_VERSION=2.4.0 \
+    HAPROXY_MD5=34ed2b4adfd847c5f7f7060f43aa5eb5
 
 COPY requirements.txt /marathon-lb/
 
@@ -83,7 +85,7 @@ RUN set -x \
         USE_REGPARM=1 \
         USE_STATIC_PCRE=1 \
         USE_ZLIB=1 \
-	    EXTRA_OBJS="contrib/prometheus-exporter/service-prometheus.o" \
+        USE_PROMEX=1 \
         all \
         install-bin \
     && rm -rf /usr/src/haproxy \
@@ -95,9 +97,10 @@ RUN set -x \
 # will probably be uninstalled with the build dependencies.
     && pip3 install --no-cache --upgrade --force-reinstall -r /marathon-lb/requirements.txt \
     \
-    && apt-get purge -y --auto-remove $buildDeps \
+    && apt-get purge -y --auto-remove $buildDeps cargo make \
+    && rm -rf /root/.cargo \
 # Purge of python3-dev will delete python3 also
-    && apt-get update && apt-get install -y --no-install-recommends python3 cargo
+    && apt-get update && apt-get install -y --no-install-recommends python3
 
 COPY  . /marathon-lb
 
