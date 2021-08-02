@@ -43,9 +43,9 @@ RUN set -x \
     && apt-get purge -y --auto-remove gpg dirmngr 
 
 
-ENV HAPROXY_MAJOR=2.0 \
-    HAPROXY_VERSION=2.0.17 \
-    HAPROXY_MD5=786a967c73cc1455c938d42fbe333bfe
+ENV HAPROXY_MAJOR=2.4 \
+    HAPROXY_VERSION=2.4.0 \
+    HAPROXY_MD5=34ed2b4adfd847c5f7f7060f43aa5eb5
 
 COPY requirements.txt /marathon-lb/
 
@@ -85,7 +85,7 @@ RUN set -x \
         USE_REGPARM=1 \
         USE_STATIC_PCRE=1 \
         USE_ZLIB=1 \
-	    EXTRA_OBJS="contrib/prometheus-exporter/service-prometheus.o" \
+        USE_PROMEX=1 \
         all \
         install-bin \
     && rm -rf /usr/src/haproxy \
