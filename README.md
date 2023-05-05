@@ -4,6 +4,13 @@ Marathon-lb is a tool for managing HAProxy, by consuming
 [Marathon's](https://github.com/mesosphere/marathon) app state. HAProxy is a
 fast, efficient, battle-tested, highly available load balancer with many advanced features which power a number of high-profile websites.
 
+## Changelog
+
+### v1.17.0-1
+- Update to debian 11
+- Update to HA PRoxy 2.7.8
+- Update Python libs
+
 ### Features
 
  * **Stateless design**: no direct dependency on any third-party state store like ZooKeeper or etcd (_except through Marathon_)

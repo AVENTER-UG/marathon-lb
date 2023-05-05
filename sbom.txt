@@ -1,0 +1,2 @@
+NAME   VERSION  TYPE   
+PyJWT  2.4.0    python  

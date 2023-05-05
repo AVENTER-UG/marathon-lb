@@ -1,5 +1,5 @@
 cryptography
-PyJWT==1.4.0
+PyJWT==2.4.0
 pycurl
 python-dateutil
 requests

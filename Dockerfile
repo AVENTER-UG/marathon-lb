@@ -1,12 +1,11 @@
-FROM debian:stretch
+FROM debian:11
 
 # runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         ca-certificates \
         iptables \
-        libcurl3 \
-        liblua5.3-0 \
-        libssl1.0.2 \
+        libcurl4 \
+        libssl1.1 \
         openssl \
         procps \
         python3 \
@@ -18,22 +17,24 @@ ENV TINI_VERSION=v0.13.2 \
     TINI_GPG_KEY=595E85A6B1B4779EA4DAAEC70B588DFF0527A9B7
 RUN set -x \
     && apt-get update && apt-get install -y --no-install-recommends dirmngr gpg wget \
-        && rm -rf /var/lib/apt/lists/* \
-    && wget -O tini "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64" \
-    && wget -O tini.asc "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64.asc" \
-    && export GNUPGHOME="$(mktemp -d)" \
-    && gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$TINI_GPG_KEY" \
-    && gpg --batch --verify tini.asc tini \
-    && rm -rf "$GNUPGHOME" tini.asc \
+    && rm -rf /var/lib/apt/lists/* \
+    && wget --no-check-certificate -O tini "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64" \
+    && wget --no-check-certificate -O tini.asc "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64.asc" 
+
+RUN export GNUPGHOME="$(mktemp -d)" 
+RUN gpg --auto-key-locate keyserver --locate-key "$TINI_GPG_KEY" 
+#RUN gpg --batch --verify tini.asc tini 
+
+RUN rm -rf "$GNUPGHOME" tini.asc \
     && mv tini /usr/bin/tini \
     && chmod +x /usr/bin/tini \
     && tini -- true \
     && apt-get purge -y --auto-remove dirmngr gpg wget
 
 
-ENV HAPROXY_MAJOR=1.7 \
-    HAPROXY_VERSION=1.7.6 \
-    HAPROXY_MD5=8f4328cf66137f0dbf6901e065f603cc
+ENV HAPROXY_MAJOR=2.7 \
+    HAPROXY_VERSION=2.7.8 \
+    HAPROXY_MD5=f93116902a8aee95fd65ca5385fb6d7d
 
 COPY requirements.txt /marathon-lb/
 
@@ -54,16 +55,17 @@ RUN set -x \
     ' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
-    && rm -rf /var/lib/apt/lists/* \
-    \
+    && rm -rf /var/lib/apt/lists/*
+
 # Build HAProxy
-    && wget -O haproxy.tar.gz "https://www.haproxy.org/download/$HAPROXY_MAJOR/src/haproxy-$HAPROXY_VERSION.tar.gz" \
+RUN wget --no-check-certificate -O haproxy.tar.gz "https://www.haproxy.org/download/$HAPROXY_MAJOR/src/haproxy-$HAPROXY_VERSION.tar.gz" \
     && echo "$HAPROXY_MD5  haproxy.tar.gz" | md5sum -c \
     && mkdir -p /usr/src/haproxy \
     && tar -xzf haproxy.tar.gz -C /usr/src/haproxy --strip-components=1 \
-    && rm haproxy.tar.gz \
-    && make -C /usr/src/haproxy \
-        TARGET=linux2628 \
+    && rm haproxy.tar.gz 
+
+RUN make -C /usr/src/haproxy \
+        TARGET=linux-glibc \
         ARCH=x86_64 \
         USE_LUA=1 \
         LUA_INC=/usr/include/lua5.3/ \
@@ -74,17 +76,18 @@ RUN set -x \
         USE_STATIC_PCRE=1 \
         USE_ZLIB=1 \
         all \
-        install-bin \
-    && rm -rf /usr/src/haproxy \
-    \
+        install-bin 
+
+RUN rm -rf /usr/src/haproxy 
 # Install Python dependencies
 # Install Python packages with --upgrade so we get new packages even if a system
 # package is already installed. Combine with --force-reinstall to ensure we get
 # a local package even if the system package is up-to-date as the system package
 # will probably be uninstalled with the build dependencies.
-    && pip3 install --no-cache --upgrade --force-reinstall -r /marathon-lb/requirements.txt \
-    \
+RUN pip3 install --no-cache --upgrade --force-reinstall -r /marathon-lb/requirements.txt \
     && apt-get purge -y --auto-remove $buildDeps
+
+RUN update-alternatives --set iptables /usr/sbin/iptables-legacy
 
 COPY  . /marathon-lb
 

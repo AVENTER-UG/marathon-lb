@@ -1,0 +1,126 @@
+{
+ "artifacts": [
+  {
+   "id": "d140d5c64f34481",
+   "name": "PyJWT",
+   "version": "2.4.0",
+   "type": "python",
+   "foundBy": "python-index-cataloger",
+   "locations": [
+    {
+     "path": "requirements.txt"
+    }
+   ],
+   "licenses": [],
+   "language": "python",
+   "cpes": [
+    "cpe:2.3:a:python-PyJWT:python-PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python-PyJWT:python_PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_PyJWT:python-PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_PyJWT:python_PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:python-PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:python_PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:PyJWT:python-PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:PyJWT:python_PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python-PyJWT:PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_PyJWT:PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:PyJWT:2.4.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:PyJWT:PyJWT:2.4.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:pypi/PyJWT@2.4.0"
+  }
+ ],
+ "artifactRelationships": [
+  {
+   "parent": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+   "child": "d140d5c64f34481",
+   "type": "contains"
+  }
+ ],
+ "source": {
+  "id": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+  "type": "directory",
+  "target": "."
+ },
+ "distro": {},
+ "descriptor": {
+  "name": "syft",
+  "version": "[not provided]",
+  "configuration": {
+   "configPath": "",
+   "verbosity": 0,
+   "quiet": false,
+   "output": [
+    "json"
+   ],
+   "output-template-path": "",
+   "file": "",
+   "check-for-app-update": true,
+   "dev": {
+    "profile-cpu": false,
+    "profile-mem": false
+   },
+   "log": {
+    "structured": false,
+    "level": "warn",
+    "file-location": ""
+   },
+   "catalogers": null,
+   "package": {
+    "cataloger": {
+     "enabled": true,
+     "scope": "Squashed"
+    },
+    "search-unindexed-archives": false,
+    "search-indexed-archives": true
+   },
+   "attest": {},
+   "file-metadata": {
+    "cataloger": {
+     "enabled": false,
+     "scope": "Squashed"
+    },
+    "digests": [
+     "sha256"
+    ]
+   },
+   "file-classification": {
+    "cataloger": {
+     "enabled": false,
+     "scope": "Squashed"
+    }
+   },
+   "file-contents": {
+    "cataloger": {
+     "enabled": false,
+     "scope": "Squashed"
+    },
+    "skip-files-above-size": 1048576,
+    "globs": []
+   },
+   "secrets": {
+    "cataloger": {
+     "enabled": false,
+     "scope": "AllLayers"
+    },
+    "additional-patterns": {},
+    "exclude-pattern-names": [],
+    "reveal-values": false,
+    "skip-files-above-size": 1048576
+   },
+   "registry": {
+    "insecure-skip-tls-verify": false,
+    "insecure-use-http": false,
+    "auth": []
+   },
+   "exclude": [],
+   "platform": "",
+   "name": "",
+   "parallelism": 1
+  }
+ },
+ "schema": {
+  "version": "7.0.1",
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-7.0.1.json"
+ }
+}
