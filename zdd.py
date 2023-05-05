@@ -133,7 +133,7 @@ def check_haproxy_reloading(haproxy_url):
         # Assume reloading on any error, this should be caught with a timeout
         return True
 
-    if len(pids) > 1:
+    if len(pids) > 2:
         logger.info("Waiting for {} pids on {}".format(len(pids), haproxy_url))
         return True
 
@@ -182,7 +182,7 @@ def _if_app_listener(app, listener):
 
 def fetch_app_listeners(app, marathon_lb_urls):
     haproxy_stats = fetch_combined_haproxy_stats(marathon_lb_urls)
-    return [l for l in haproxy_stats if _if_app_listener(app, l)]
+    return [li for li in haproxy_stats if _if_app_listener(app, li)]
 
 
 def waiting_for_listeners(new_app, old_app, listeners, haproxy_count):
@@ -205,24 +205,24 @@ def get_new_instance_count(app):
 
 
 def waiting_for_up_listeners(app, listeners, haproxy_count):
-    up_listeners = [l for l in listeners if l.status == 'UP']
+    up_listeners = [li for li in listeners if li.status == 'UP']
     up_listener_count = (len(up_listeners) / haproxy_count)
 
     return up_listener_count < get_deployment_target(app)
 
 
 def select_draining_listeners(listeners):
-    return [l for l in listeners if l.status == 'MAINT']
+    return [li for li in listeners if li.status == 'MAINT']
 
 
 def select_drained_listeners(listeners):
     draining_listeners = select_draining_listeners(listeners)
-    return [l for l in draining_listeners if not _has_pending_requests(l)]
+    return [li for li in draining_listeners if not _has_pending_requests(li)]
 
 
 def get_svnames_from_task(app, task):
     prefix = task['host'].replace('.', '_')
-    task_ip, task_port = get_task_ip_and_ports(app, task)
+    task_ip, _ = get_task_ip_and_ports(app, task)
     if task['host'] == task_ip:
         for port in task['ports']:
             yield('{}_{}'.format(prefix, port))
@@ -259,7 +259,8 @@ def find_drained_task_ids(app, listeners, haproxy_count):
 
     drained_task_ids = []
     for svname, task in tasks:
-        task_listeners = [l for l in drained_listeners if l.svname == svname]
+        task_listeners = [li for li in drained_listeners
+                          if li.svname == svname]
         if len(task_listeners) == haproxy_count:
             drained_task_ids.append(task['id'])
 
@@ -274,7 +275,8 @@ def find_draining_task_ids(app, listeners, haproxy_count):
 
     draining_task_ids = []
     for svname, task in tasks:
-        task_listeners = [l for l in draining_listeners if l.svname == svname]
+        task_listeners = [li for li in draining_listeners
+                          if li.svname == svname]
         if len(task_listeners) == haproxy_count:
             draining_task_ids.append(task['id'])
 
@@ -413,11 +415,18 @@ def scale_new_app_instances(args, new_app, old_app):
        meet or surpass instances deployed for old_app.
        At which point go right to the new_app deployment target
     """
-    instances = (math.floor(new_app['instances'] +
-                 (new_app['instances'] + 1) / 2))
+    linear = (args.linear_increase and args.linear_increase > 0)
+    if linear:
+        instances = new_app['instances'] + args.linear_increase
+    else:
+        instances = (math.floor(new_app['instances'] +
+                     (new_app['instances'] + 1) / 2))
     if is_hybrid_deployment(args, new_app):
         if instances > get_new_instance_count(new_app):
             instances = get_new_instance_count(new_app)
+    elif linear:
+        if instances > get_deployment_target(new_app):
+            instances = get_deployment_target(new_app)
     else:
         if instances >= old_app['instances']:
             instances = get_deployment_target(new_app)
@@ -645,7 +654,7 @@ def prepare_deploy(args, previous_deploys, app):
 
 def load_app_json(args):
     with open(args.json) as content_file:
-        return json.load(content_file)
+        return cleanup_json(json.load(content_file))
 
 
 def safe_resume_deploy(args, previous_deploys):
@@ -752,6 +761,14 @@ def get_arg_parser():
                         " existing instances, then this will be overridden"
                         " by the latter number",
                         type=int, default=1
+                        )
+    parser.add_argument("--linear-increase",
+                        help="Instead of scaling the new app by factor 0.5 if"
+                        " its existing instances and going to the new target"
+                        " in a single final step if it meets or surpasses the"
+                        " number of old instances, continously scale the new"
+                        " app by this number.",
+                        type=int, default=0
                         )
     parser.add_argument("--resume", "-r",
                         help="Resume from a previous deployment",

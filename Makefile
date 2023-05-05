@@ -39,3 +39,5 @@ sboom:
 	syft dir:. -o json > sbom.json
 
 all: seccheck build imagecheck sboom
+
+

@@ -1,7 +1,7 @@
-# marathon-lb [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=public-marathon-lb-master)](https://jenkins.mesosphere.com/service/jenkins/job/public-marathon-lb-master/)
+# marathon-lb 
 
 Marathon-lb is a tool for managing HAProxy, by consuming
-[Marathon's](https://github.com/mesosphere/marathon) app state. HAProxy is a
+[Marathon's](https://github.com/AVENTER-UG/marathon) app state. HAProxy is a
 fast, efficient, battle-tested, highly available load balancer with many advanced features which power a number of high-profile websites.
 
 ## Changelog
@@ -16,24 +16,23 @@ fast, efficient, battle-tested, highly available load balancer with many advance
  * **Stateless design**: no direct dependency on any third-party state store like ZooKeeper or etcd (_except through Marathon_)
  * **Idempotent and deterministic**: scales horizontally
  * **Highly scalable**: [can achieve line-rate](http://www.haproxy.org/10g.html) per instance, with multiple instances providing fault-tolerance and greater throughput
- * **Real-time LB updates**, via [Marathon's event bus](https://mesosphere.github.io/marathon/docs/event-bus.html)
+ * **Real-time LB updates**, via [Marathon's event bus](https://aventer-ug.github.io/marathon/docs/event-bus.html)
  * Support for Marathon's **health checks**
  * **Multi-cert TLS/SSL** support
  * [Zero-downtime deployments](#zero-downtime-deployments)
  * Per-service **HAProxy templates**
- * DC/OS integration
- * Automated Docker image builds ([mesosphere/marathon-lb](https://hub.docker.com/r/mesosphere/marathon-lb))
+ * Apache Mesos integration
+ * Automated Docker image builds ([avhost/marathon-lb](https://hub.docker.com/r/avhost/marathon-lb))
  * Global HAProxy templates which can be supplied at launch
  * Supports IP-per-task integration, such as [Project Calico](https://github.com/projectcalico/calico-containers)
  * Includes [tini](https://github.com/krallin/tini) zombies reaper
 
 ### Getting Started
 
- * [Using marathon-lb](https://docs.mesosphere.com/latest/usage/service-discovery/marathon-lb/usage/)
- * [Advanced features of marathon-lb](https://docs.mesosphere.com/latest/usage/service-discovery/marathon-lb/advanced/)
+ * [Using marathon-lb](https://github.com/AVENTER-UG/marathon-lb/wiki/Using-Marathon-LB)
  * [Securing your service with TLS/SSL (blog post)](https://mesosphere.com/blog/2016/04/06/lets-encrypt-dcos/)
 
-Take a look at [the marathon-lb wiki](https://github.com/mesosphere/marathon-lb/wiki) for example usage, templates, and more.
+Take a look at [the marathon-lb wiki](https://github.com/AVENTER-UG/marathon-lb/wiki) for example usage, templates, and more.
 
 ## Architecture
 The marathon-lb script `marathon_lb.py` connects to the marathon API
@@ -42,7 +41,7 @@ By default, marathon-lb binds to the service port of every application and
 sends incoming requests to the application instances.
 
 Services are exposed on their service port (see
-[Service Discovery & Load Balancing](https://mesosphere.github.io/marathon/docs/service-discovery-load-balancing)
+[Service Discovery & Load Balancing](https://aventer-ug.github.io/marathon/docs/service-discovery-load-balancing)
 for reference) as defined in their Marathon definition. Furthermore, apps are
 only exposed on LBs which have the same LB tag (or group) as defined in the Marathon
 app's labels (using `HAPROXY_GROUP`). HAProxy parameters can be tuned by specify labels in your app.
@@ -58,23 +57,6 @@ the [templates section](Longhelp.md#templates)
 
 You can access the HAProxy statistics via `:9090/haproxy?stats`, and you can
 retrieve the current HAProxy config from the `:9090/_haproxy_getconfig` endpoint.
-
-## Deployment
-The package is currently available [from the universe](https://github.com/mesosphere/universe).
-To deploy marathon-lb on the public slaves in your DC/OS cluster,
-simply run:
-
-```
-dcos package install marathon-lb
-```
-
-To configure a custom ssl-certificate, set the dcos cli option `ssl-cert`
-to your concatenated cert and private key in .pem format. For more details
-see the [HAProxy documentation](https://cbonte.github.io/haproxy-dconv/configuration-1.7.html#crt (Bind options)).
-
-For further customization, templates can be added by pointing the dcos cli
-option `template-url` to a tarball containing a directory `templates/`.
-See [comments in script](marathon_lb.py) on how to name those.
 
 ### Docker
 Synopsis: `docker run -e PORTS=$portnumber --net=host mesosphere/marathon-lb sse|poll ...`
@@ -115,8 +97,8 @@ It is possible to pass `--auth-credentials=` option if your Marathon requires au
 $ ./marathon_lb.py --marathon http://localhost:8080 --auth-credentials=admin:password
 ```
 
-It is possible to get the auth credentials (user & password) from VAULT if you define the following 
-environment variables before running marathon-lb: VAULT_TOKEN, VAULT_HOST, VAULT_PORT, VAULT_PATH 
+It is possible to get the auth credentials (user & password) from VAULT if you define the following
+environment variables before running marathon-lb: VAULT_TOKEN, VAULT_HOST, VAULT_PORT, VAULT_PATH
 where VAULT_PATH is the root path where your user and password are located.
 
 This will refresh `haproxy.cfg`, and if there were any changes, then it will
@@ -179,6 +161,7 @@ Marathon-lb exposes a few endpoints on port 9090 (by default). They are:
 | `:9090/_haproxy_getpids`      | Returns the PIDs for all HAProxy instances within the current process namespace. This literally returns `$(pidof haproxy)`. Implemented in [`getpids.lua`](getpids.lua). This is also used by the [`zdd.py`](zdd.py) script to determine if connections have finished draining during a deploy. |
 | `:9090/_mlb_signal/hup`*      | Sends a `SIGHUP` signal to the marathon-lb process, causing it to fetch the running apps from Marathon and reload the HAProxy config as though an event was received from Marathon.                                                                                                             |
 | `:9090/_mlb_signal/usr1`*     | Sends a `SIGUSR1` signal to the marathon-lb process, causing it to restart HAProxy with the existing config, without checking Marathon for changes.                                                                                                                                             |
+| `:9090/metrics`               | Exposes HAProxy metrics in prometheus format.                                                                                                                                                                                                                                                   |
 
 \* These endpoints won't function when marathon-lb is in `poll` mode as there is no marathon-lb process to be signaled in this mode (marathon-lb exits after each poll).
 
@@ -204,14 +187,28 @@ of labels.
 
 ### Templates
 
-Marathon-lb searches for configuration files in the `templates/`
-directory. The `templates/` directory is located in a relative
-path from where the script is run. Some templates can also be
-[overridden _per app service port_](#overridable-templates). You may add your
-own templates to the Docker image, or provide them at startup.
+Marathon-lb global templates (as listed in the [Longhelp](Longhelp.md#templates)) can be overwritten in two ways:
+-By creating an environment variable in the marathon-lb container
+-By placing configuration files in the `templates/` directory (relative to where the script is run from)
 
-See [the configuration doc for the full list](Longhelp.md#templates)
-of templates.
+For example, to replace `HAPROXY_HTTPS_FRONTEND_HEAD` with this content:
+
+```
+frontend new_frontend_label
+  bind *:443 ssl crt /etc/ssl/cert.pem
+  mode http
+```
+
+Then this environment variable could be added to the Marathon-LB configuration:
+```
+"HAPROXY_HTTPS_FRONTEND_HEAD": "\\nfrontend new_frontend_label\\n  bind *:443 ssl {sslCerts}\\n  mode http"
+```
+
+Alternately, a file called`HAPROXY_HTTPS_FRONTEND_HEAD` could be placed in `templates/` directory through the use of an artifact URI.
+
+Additionally, some templates can also be [overridden _per app service port_](#overridable-templates). You may add your own templates to the Docker image, or provide them at startup.
+
+See [the configuration doc for the full list](Longhelp.md#templates) of templates.
 
 #### Overridable Templates
 
@@ -254,7 +251,7 @@ The default value when not specified is `redispatch,http-server-close,dontlognul
  * Avoid using the `HAPROXY_{n}_PORT` label; prefer defining service ports.
  * Consider running multiple marathon-lb instances. In practice, 3 or more should be used to provide high availability for production workloads. Running 1 instance is never recommended, and unless you have significant load running more than 5 instances may not add value. The number of MLB instances you run will vary depending on workload and the amount of failure tolerance required. Note: **do not** run marathon-lb on every node in your cluster. This is considered an anti-pattern due to the implications of hammering the Marathon API and excess health checking.
  * Consider using a dedicated load balancer in front of marathon-lb to permit upgrades/changes. Common choices include an ELB (on AWS) or a hardware load balancer for on-premise installations.
- * Use separate marathon-lb groups (specified with `--group`) for internal and external load balancing. On DC/OS, the default group is `external`. A simple `options.json` for an internal load balancer would be:
+ * Use separate marathon-lb groups (specified with `--group`) for internal and external load balancing. On Marathon, the default group is `external`. A simple `options.json` for an internal load balancer would be:
 
  ```json
    {
@@ -281,12 +278,24 @@ The default value when not specified is `redispatch,http-server-close,dontlognul
   < HTTP/1.1 200 OK
   ```
  * Some of the features of marathon-lb assume that it is the only instance of itself running in a PID namespace. i.e. marathon-lb assumes that it is running in a container. Certain features like the `/_mlb_signal` endpoints and the `/_haproxy_getpids` endpoint (and by extension, zero-downtime deployments) may behave unexpectedly if more than one instance of marathon-lb is running in the same PID namespace or if there are other HAProxy processes in the same PID namespace.
+ * Sometimes it is desirable to get detailed container and HAProxy logging for easier debugging as well as viewing connection logging to frontends and backends. This can be achieved by setting the `HAPROXY_SYSLOGD` environment variable or `container-syslogd` value in `options.json` like so:
+
+ ```json
+   {
+     "marathon-lb": {
+       "container-syslogd": true
+     }
+   }
+ ```
+
 
 ## Zero-downtime Deployments
 
+* Please note that `zdd.py` is not to be used in a production environment and is purely developed for demonstration purposes.
+
 Marathon-lb is able to perform canary style blue/green deployment with zero downtime. To execute such deployments, you must follow certain patterns when using Marathon.
 
-The deployment method is described [in this Marathon document](https://mesosphere.github.io/marathon/docs/blue-green-deploy.html). Marathon-lb provides an implementation of the aforementioned deployment method with the script [`zdd.py`](zdd.py). To perform a zero downtime deploy using `zdd.py`, you must:
+The deployment method is described [in this Marathon document](https://aventer-ug.github.io/marathon/docs/blue-green-deploy.html). Marathon-lb provides an implementation of the aforementioned deployment method with the script [`zdd.py`](zdd.py). To perform a zero downtime deploy using `zdd.py`, you must:
 
 
 - Specify the `HAPROXY_DEPLOYMENT_GROUP` and `HAPROXY_DEPLOYMENT_ALT_PORT` labels in your app template
@@ -353,12 +362,9 @@ assignment is not guaranteed if you change the current set of deployed apps. In
 other words, when you deploy a new app, the port assignments may change.
 
 
-## Zombies reaping
+## Zombie reaping
 
-When running within isolated containers, you may have to care about reaping orphan child processes.
-Haproxy typicaly produce orphan processes because of it's two steps reload machanism.
-Marathon-lb is using [tini](https://github.com/krallin/tini) for this purpose.
-When running in a container whitout pid namespace isolation, setting the `TINI_SUBREAPER` environnement variable is recommended.
+When running with isolated containers, you may need to take care of reaping orphaned child processes. HAProxy typically produces orphan processes because of its two-step reload mechanism. Marathon-LB uses [tini](https://github.com/krallin/tini) for this purpose. When running in a container without PID namespace isolation, setting the `TINI_SUBREAPER` environment variable is recommended.
 
 
 ## Contributing
@@ -378,6 +384,54 @@ PRs are welcome, but here are a few general guidelines:
    ```
    bash /path/to/marathon-lb/scripts/install-git-hooks.sh
    ```
+
+### Using the Makefile and docker for developement and testing
+
+Running unit and integration tests is automated as `make` targets. Docker
+is required to use the targets as it will run all tests in containers.
+
+Several environment variables can be set to control the image tags,
+DCOS version/variant, etc. Check the top of the `Makefile` for more info.
+
+To run the unit tests:
+
+```bash
+make test-unit
+```
+
+To run the integration tests a DCOS installation will be started via
+[dcos-e2e](https://github.com/dcos/dcos-e2e). The installation of
+`dcos-e2e` and management of the cluster will all be done in docker
+containers. Since the installers are rather large downloads, it is
+benificial to specify a value for `DCOS_E2E_INSTALLERS_DIR`. By default
+`DCOS_E2E_INSTALLERS_DIR` is inside the `.cache` directory that will be
+removed upon `make clean`. You must provide a repository for the
+resultant docker image to be pushed to via the `CONTAINTER_REPO`
+environemnt variable. It is assumed that the local docker is already
+logged in and the image will be pushed prior to launching the cluster.
+
+To run the integration tests on the OSS variant of DCOS:
+
+```bash
+DCOS_E2E_INSTALLERS_DIR="${HOME}/dcos/installers" \
+CONTAINTER_REPO="my_docker_user/my-marathon-lb-repo" make test-integration
+```
+
+To run the integration tests on the ENTERPRISE variant of DCOS:
+
+
+```bash
+DCOS_LICENSE_KEY_PATH=${HOME}/license.txt \
+DCOS_E2E_VARIANT=enterprise \
+DCOS_E2E_INSTALLERS_DIR="${HOME}/dcos/installers"\
+CONTAINTER_REPO="my_docker_user/my-marathon-lb-repo" make test-integration
+```
+
+To run both unit and integration tests (add appropriate variables):
+
+```bash
+CONTAINTER_REPO="my_docker_user/my-marathon-lb-repo" make test
+```
 
 ### Troubleshooting your development environment setup
 

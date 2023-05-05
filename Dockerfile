@@ -1,5 +1,9 @@
 FROM debian:11
 
+LABEL version="1.17.0"
+LABEL org.opencontainers.image.authors="support@aventer.biz"
+LABEL biz.aventer.marathon-lb="AVENTER UG (haftungsbeschraenkt)"
+
 # runtime dependencies
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -10,11 +14,23 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
         procps \
         python3 \
         runit \
+        gnupg-agent \
+        gpg  \
+        dirmngr \
         socat \
+        cargo \
+        make \
     && rm -rf /var/lib/apt/lists/*
 
-ENV TINI_VERSION=v0.13.2 \
+ENV TINI_VERSION=v0.19.0 \
     TINI_GPG_KEY=595E85A6B1B4779EA4DAAEC70B588DFF0527A9B7
+
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini.asc /tini.asc    
+
+RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 595E85A6B1B4779EA4DAAEC70B588DFF0527A9B7 \
+    && gpg --batch --verify /tini.asc /tini
+
 RUN set -x \
     && apt-get update && apt-get install -y --no-install-recommends dirmngr gpg wget \
     && rm -rf /var/lib/apt/lists/* \
@@ -29,7 +45,7 @@ RUN rm -rf "$GNUPGHOME" tini.asc \
     && mv tini /usr/bin/tini \
     && chmod +x /usr/bin/tini \
     && tini -- true \
-    && apt-get purge -y --auto-remove dirmngr gpg wget
+    && apt-get purge -y --auto-remove gpg dirmngr 
 
 
 ENV HAPROXY_MAJOR=2.7 \
@@ -40,13 +56,13 @@ COPY requirements.txt /marathon-lb/
 
 RUN set -x \
     && buildDeps=' \
+        build-essential \
         gcc \
         libcurl4-openssl-dev \
         libffi-dev \
         liblua5.3-dev \
         libpcre3-dev \
         libssl-dev \
-        make \
         python3-dev \
         python3-pip \
         python3-setuptools \
@@ -75,6 +91,7 @@ RUN make -C /usr/src/haproxy \
         USE_REGPARM=1 \
         USE_STATIC_PCRE=1 \
         USE_ZLIB=1 \
+        USE_PROMEX=1 \
         all \
         install-bin 
 
