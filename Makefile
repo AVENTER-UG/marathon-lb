@@ -26,9 +26,7 @@ build:
 
 push:
 	@echo ">>>> Publish docker image: " ${BRANCH}
-	@docker buildx create --use --name buildkit
-	@docker buildx build --platform linux/arm64,linux/amd64 --push --build-arg TAG=${TAG} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCH} .
-	@docker buildx rm buildkit
+	@docker buildx build --platform linux/amd64 --push --build-arg TAG=${TAG} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCH} .
 
 seccheck:
 	grype --add-cpes-if-none .
