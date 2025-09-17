@@ -1,15 +1,25 @@
-FROM debian:11
+FROM python:3.12-slim-bookworm
 
-LABEL version="1.17.0"
-LABEL org.opencontainers.image.authors="support@aventer.biz"
-LABEL biz.aventer.marathon-lb="AVENTER UG (haftungsbeschraenkt)"
+LABEL maintainer="Andreas Peters <support@aventer.biz>"
+LABEL org.opencontainers.image.title="marathon-lb"
+LABEL org.opencontainers.image.description="Loadbalancer for Mesosphere Marathon"
+LABEL org.opencontainers.image.vendor="AVENTER UG (haftungsbeschränkt)"
+LABEL org.opencontainers.image.source="https://github.com/AVENTER-UG/"
+
+# Never prompts the user for choices on installation/configuration of packages
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TERM=linux
+
+# Define en_US.
+ENV LC_ALL="C.utf8"
+ENV LC_CTYPE="C.utf8"
 
 # runtime dependencies
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         ca-certificates \
         iptables \
         libcurl4 \
-        libssl1.1 \
+        libssl3 \
         openssl \
         procps \
         python3 \
@@ -48,9 +58,9 @@ RUN rm -rf "$GNUPGHOME" tini.asc \
     && apt-get purge -y --auto-remove gpg dirmngr 
 
 
-ENV HAPROXY_MAJOR=2.7 \
-    HAPROXY_VERSION=2.7.8 \
-    HAPROXY_MD5=f93116902a8aee95fd65ca5385fb6d7d
+ENV HAPROXY_MAJOR=3.2 \
+    HAPROXY_VERSION=3.2.4 \
+    HAPROXY_MD5=35a9600a063df8d85fd845dc330cb111
 
 COPY requirements.txt /marathon-lb/
 
@@ -95,7 +105,13 @@ RUN make -C /usr/src/haproxy \
         all \
         install-bin 
 
-RUN rm -rf /usr/src/haproxy 
+RUN rm -rf /usr/src/haproxy
+
+RUN python3 -m venv /marathon-lb/venv
+RUN . /marathon-lb/venv/bin/activate
+
+ENV PATH=/marathon-lb/venv/bin:$PATH
+
 # Install Python dependencies
 # Install Python packages with --upgrade so we get new packages even if a system
 # package is already installed. Combine with --force-reinstall to ensure we get
@@ -107,10 +123,14 @@ RUN pip3 install --no-cache --upgrade --force-reinstall -r /marathon-lb/requirem
 RUN update-alternatives --set iptables /usr/sbin/iptables-legacy
 
 COPY  . /marathon-lb
+RUN rm -rf /marathon-lb/.git
+RUN rm -rf /marathon-lb/.github
 
 WORKDIR /marathon-lb
 
 ENTRYPOINT [ "tini", "-g", "--", "/marathon-lb/run" ]
 CMD [ "sse", "--health-check", "--group", "external" ]
+
+
 
 EXPOSE 80 443 9090 9091

@@ -1,43 +1,43 @@
 #Dockerfile vars
-
 #vars
 IMAGENAME=marathon-lb
-TAG=
-BUILDDATE=${shell date -u +%Y-%m-%dT%H:%M:%SZ}
-IMAGEFULLNAME=avhost/${IMAGENAME}
-BRANCH=${shell git symbolic-ref --short HEAD}
+REPO=avhost
+TAG=v1.17.0-3
+BRANCH=${TAG}
+BRANCHSHORT=$(shell echo ${BRANCH} | awk -F. '{ print $$1"."$$2 }')
+BUILDDATE=$(shell date -u +%Y%m%d)
+IMAGEFULLNAME=${REPO}/${IMAGENAME}
 LASTCOMMIT=$(shell git log -1 --pretty=short | tail -n 1 | tr -d " " | tr -d "UPDATE:")
+
+
+.PHONY: help build all docs
 
 .DEFAULT_GOAL := all
 
-ifeq (${BRANCH}, master) 
-        BRANCH=latest
-endif
-
-ifneq ($(shell echo $(LASTCOMMIT) | grep -E '^v([0-9]+\.){0,2}(\*|[0-9]+)'),)
-        BRANCH=${LASTCOMMIT}
-else
-        BRANCH=latest
-endif
-
 build:
-	@echo ">>>> Build docker image: " ${BRANCH}
-	@docker buildx build --build-arg TAG=${TAG} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCH} .
+	@echo ">>>> Build Docker: latest"
+	@docker build --build-arg TAG=${TAG} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:latest .
+
+build-bin:
+	@echo ">>>> Build binary"
+	@CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "-X main.BuildVersion=${BUILDDATE} -X main.GitVersion=${TAG} -extldflags \"-static\"" .
 
 push:
-	@echo ">>>> Publish docker image: " ${BRANCH}
-	@docker buildx build --platform linux/amd64 --push --build-arg TAG=${TAG} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCH} .
-
-seccheck:
-	grype --add-cpes-if-none .
-
-imagecheck:	
-	trivy image ${IMAGEFULLNAME}:${BRANCH}
+	@echo ">>>> Publish docker image: " ${BRANCH} ${BRANCHSHORT}
+	-docker buildx create --use --name buildkit
+	@docker buildx build --sbom=true --provenance=true --platform linux/amd64 --push --build-arg TAG=${BRANCH} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCH} .
+	@docker buildx build --sbom=true --provenance=true --platform linux/amd64 --push --build-arg TAG=${BRANCH} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:${BRANCHSHORT} .
+	@docker buildx build --sbom=true --provenance=true --platform linux/amd64 --push --build-arg TAG=${BRANCH} --build-arg BUILDDATE=${BUILDDATE} -t ${IMAGEFULLNAME}:latest .
 
 sboom:
 	syft dir:. > sbom.txt
 	syft dir:. -o json > sbom.json
 
-all: seccheck build imagecheck sboom
+seccheck:
+	grype --add-cpes-if-none .
 
+imagecheck:
+	grype --add-cpes-if-none ${IMAGEFULLNAME}:latest > cve-report.md
 
+check: sboom seccheck
+all: check build imagecheck
