@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.17.0-4
+
+- SECURITY: Update docker base image.
+
 ## v1.17.0
 
 - Update: Haproxy to 2.4.0

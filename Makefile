@@ -2,7 +2,7 @@
 #vars
 IMAGENAME=marathon-lb
 REPO=avhost
-TAG=v1.17.0-3
+TAG=v1.17.0-4
 BRANCH=${TAG}
 BRANCHSHORT=$(shell echo ${BRANCH} | awk -F. '{ print $$1"."$$2 }')
 BUILDDATE=$(shell date -u +%Y%m%d)
